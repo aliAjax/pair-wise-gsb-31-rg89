@@ -17,6 +17,7 @@ ReSwap 是一个纯前端以物换物 Web 应用。用户可以本地模拟登�
 - 物品详情、物主资料、选择自己的物品发起交换。
 - 发布物品，支持本地 base64 图片上传、分类和成色选择。
 - 交换管理，区分我发起的和我收到的请求，支持同意、拒绝、完成。
+- 待确认请求 48 小时时限：读取数据时超时记录自动标记为已过期，物主处理入口随之关闭；相同两件物品在时限内仅保留一条待确认请求；发起人可从过期记录一键重新发起，旧记录和留言保留可查；交换列表与物品详情展示剩余时间和过期原因。
 - 个人中心，编辑资料、上传头像、查看我发布的物品。
 - 主题切换、全局错误处理和 Vant 提示。
 
@@ -54,7 +55,7 @@ src/
 ├── models/           # user.ts, item.ts, exchange.ts：独立数据模型
 ├── types/            # 共享类型补充
 ├── components/common/# 共享业务组件和 GlobalErrorBoundary
-├── hooks/            # useAuth.ts, useLocalStorage.ts, useExchangeStats.ts
+├── hooks/            # useAuth.ts, useLocalStorage.ts, useExchangeStats.ts, useNow.ts
 ├── pages/            # Home, ItemDetail, Publish, Exchanges, Profile
 ├── router/           # index.ts + guards.ts
 ├── utils/            # storage.ts, formatters.ts, validators.ts, message.ts, themeUtils.ts
@@ -70,6 +71,7 @@ src/
 - 所有 `api/*Api.ts` 通过 `storage.ts` 读写数据，不在组件里直接写业务数据。
 - 存储层包含序列化、版本号、过期清理、存储 key 管理。
 - 首次启动会写入演示用户、物品和交换请求。
+- 交换请求带 48 小时待确认时限（`expires_at`），`api/exchangeApi.ts` 在每次读取列表时把超时仍未处理的记录标记为 `expired` 并回写存储，旧记录与留言不删除。
 
 ## 横切关注点
 
@@ -99,6 +101,8 @@ src/
 ### ExchangeStatus
 
 定义位置：`src/constants/exchange.ts`
+
+取值：`pending`（待确认）、`accepted`（已同意）、`rejected`（已拒绝）、`completed`（已完成）、`expired`（已过期，待确认超过 48 小时未处理时由读取逻辑自动标记）
 
 出现位置：
 

@@ -12,6 +12,7 @@
       <span>待确认 {{ stats.pending }}</span>
       <span>已同意 {{ stats.accepted }}</span>
       <span>已完成 {{ stats.completed }}</span>
+      <span>已过期 {{ stats.expired }}</span>
     </div>
 
     <div class="segmented">
@@ -35,6 +36,7 @@
         @accept="exchangeStore.accept"
         @reject="exchangeStore.reject"
         @complete="completeExchange"
+        @resend="exchangeStore.resend"
       />
     </div>
     <EmptyState

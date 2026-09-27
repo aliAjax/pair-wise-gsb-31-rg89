@@ -28,6 +28,25 @@
         </dl>
         <UserBrief v-if="owner" :user="owner" />
 
+        <div v-if="relatedExchanges.length" class="exchange-progress">
+          <p class="exchange-progress__title">交换进度</p>
+          <ul>
+            <li v-for="entry in relatedExchanges" :key="entry.id">
+              <span class="status-pill" :class="statusToneClass(entry.status)">
+                {{ formatExchangeStatus(entry.status) }}
+              </span>
+              <span class="exchange-progress__hint">{{ relatedHint(entry) }}</span>
+              <button
+                v-if="entry.status === ExchangeStatus.EXPIRED && entry.from_user_id === authStore.currentUser?.id"
+                type="button"
+                @click="resendExchange(entry.id)"
+              >
+                重新发起
+              </button>
+            </li>
+          </ul>
+        </div>
+
         <div v-if="!isMine" class="exchange-box">
           <label>
             我的交换物
@@ -42,9 +61,15 @@
             留言
             <textarea v-model="messageText" rows="3" />
           </label>
-          <button class="primary-button" type="button" :disabled="item.status !== ItemStatus.AVAILABLE" @click="requestExchange">
-            发起交换
+          <button
+            class="primary-button"
+            type="button"
+            :disabled="item.status !== ItemStatus.AVAILABLE || pendingDuplicate"
+            @click="requestExchange"
+          >
+            {{ pendingDuplicate ? '待确认请求已存在' : '发起交换' }}
           </button>
+          <p v-if="pendingDuplicate" class="form-note">{{ FORM_MESSAGES.exchangeDuplicated }}</p>
         </div>
         <button v-else-if="item.status === ItemStatus.AVAILABLE" class="secondary-button" type="button" @click="offlineItem">
           下架这件物品
@@ -64,16 +89,28 @@ import ItemImageGallery from '@/components/common/ItemImageGallery.vue';
 import UserBrief from '@/components/common/UserBrief.vue';
 import { ExchangeStatus } from '@/constants/exchange';
 import { ItemStatus } from '@/constants/item';
+import { FORM_MESSAGES } from '@/constants/messages';
+import { useNow } from '@/hooks/useNow';
+import type { Exchange } from '@/models/exchange';
 import { useAuthStore } from '@/stores/authStore';
 import { useExchangeStore } from '@/stores/exchangeStore';
 import { useItemStore } from '@/stores/itemStore';
-import { formatCondition, formatDate, formatItemStatus, statusToneClass } from '@/utils/formatters';
+import {
+  formatCondition,
+  formatDate,
+  formatExchangeRemaining,
+  formatExchangeStatus,
+  formatItemStatus,
+  formatStatusMessage,
+  statusToneClass,
+} from '@/utils/formatters';
 import { message } from '@/utils/message';
 
 const route = useRoute();
 const itemStore = useItemStore();
 const authStore = useAuthStore();
 const exchangeStore = useExchangeStore();
+const now = useNow();
 
 const item = computed(() => itemStore.items.find((entry) => entry.id === route.params.id));
 const owner = computed(() => authStore.users.find((user) => user.id === item.value?.user_id));
@@ -83,6 +120,33 @@ const ownAvailableItems = computed(() =>
 );
 const selectedItemId = ref('');
 const messageText = ref('我想用这件闲置与你交换，可以沟通时间和地点。');
+
+const relatedExchanges = computed(() => {
+  if (!item.value || !authStore.currentUser) return [];
+  const me = authStore.currentUser.id;
+  return exchangeStore.exchanges
+    .filter(
+      (entry) =>
+        entry.to_item_id === item.value!.id && (entry.from_user_id === me || entry.to_user_id === me),
+    )
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    .slice(0, 3);
+});
+
+const relatedHint = (entry: Exchange) => {
+  if (entry.status === ExchangeStatus.PENDING) return formatExchangeRemaining(entry, now.value);
+  return formatStatusMessage(entry.status);
+};
+
+const pendingDuplicate = computed(() => {
+  if (!item.value || !selectedItemId.value) return false;
+  return exchangeStore.exchanges.some(
+    (entry) =>
+      entry.status === ExchangeStatus.PENDING &&
+      entry.from_item_id === selectedItemId.value &&
+      entry.to_item_id === item.value!.id,
+  );
+});
 
 const requestExchange = async () => {
   if (!authStore.currentUser || !item.value || !owner.value) return;
@@ -99,6 +163,10 @@ const requestExchange = async () => {
     status: ExchangeStatus.PENDING,
     message: messageText.value,
   });
+};
+
+const resendExchange = async (id: string) => {
+  await exchangeStore.resend(id);
 };
 
 const offlineItem = async () => {

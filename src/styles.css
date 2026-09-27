@@ -594,6 +594,53 @@ textarea {
   gap: 8px;
 }
 
+.exchange-card__expire {
+  color: #9b5c1c;
+  font-size: 0.9rem;
+}
+
+.exchange-progress {
+  display: grid;
+  gap: 10px;
+  border: 1px dashed var(--rs-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.exchange-progress__title {
+  margin: 0;
+  font-weight: 800;
+}
+
+.exchange-progress ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.exchange-progress li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.exchange-progress__hint {
+  color: color-mix(in oklch, var(--rs-text), transparent 30%);
+  font-size: 0.86rem;
+}
+
+.exchange-progress li button {
+  min-height: 34px;
+  border: 1px solid var(--rs-border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--rs-text);
+}
+
 .profile-side {
   display: grid;
   gap: 18px;

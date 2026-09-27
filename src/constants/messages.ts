@@ -6,6 +6,7 @@ export const PAGE_MESSAGES = {
   publishReady: '发布后会同步写入 localStorage 和 IndexedDB',
   exchangeEmpty: '还没有交换请求，先去首页挑一件合眼缘的物品',
   profileUpdated: '个人资料已更新',
+  exchangeResent: '已基于过期记录重新发起交换，旧记录和留言保留可查',
 };
 
 export const FORM_MESSAGES = {
@@ -14,20 +15,22 @@ export const FORM_MESSAGES = {
   requiredPhone: '请填写联系方式',
   imageLimit: '最多上传 4 张图片',
   exchangeNeedOwnItem: '请先发布一件可交换物品',
+  exchangeDuplicated: '相同两件物品已有一条待确认请求，请等对方处理或 48 小时过期后再试',
 };
 
 export const LOG_MESSAGES = {
   storageHydrated: 'storage hydrated with status maps',
   itemStatusUsed: `ItemStatus includes ${ItemStatus.AVAILABLE}, ${ItemStatus.EXCHANGED}, ${ItemStatus.OFFLINE}`,
-  exchangeStatusUsed: `ExchangeStatus includes ${ExchangeStatus.PENDING}, ${ExchangeStatus.ACCEPTED}, ${ExchangeStatus.REJECTED}, ${ExchangeStatus.COMPLETED}`,
+  exchangeStatusUsed: `ExchangeStatus includes ${ExchangeStatus.PENDING}, ${ExchangeStatus.ACCEPTED}, ${ExchangeStatus.REJECTED}, ${ExchangeStatus.COMPLETED}, ${ExchangeStatus.EXPIRED}`,
 };
 
 export const STATUS_MESSAGE_MAP = {
   [ItemStatus.AVAILABLE]: '这件物品可发起交换',
   [ItemStatus.EXCHANGED]: '这件物品已完成交换',
   [ItemStatus.OFFLINE]: '这件物品已下架',
-  [ExchangeStatus.PENDING]: '等待对方确认',
+  [ExchangeStatus.PENDING]: '等待对方确认，48 小时未处理将自动过期',
   [ExchangeStatus.ACCEPTED]: '交换已同意，可确认完成',
   [ExchangeStatus.REJECTED]: '交换请求已拒绝',
   [ExchangeStatus.COMPLETED]: '交换流程已完成',
+  [ExchangeStatus.EXPIRED]: '对方未在 48 小时内处理，交换请求已过期',
 };

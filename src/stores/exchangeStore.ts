@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 
 import { exchangeApi } from '@/api/exchangeApi';
 import { ExchangeStatus } from '@/constants/exchange';
+import { PAGE_MESSAGES } from '@/constants/messages';
 import type { Exchange, ExchangeDraft } from '@/models/exchange';
 import { message } from '@/utils/message';
 
@@ -29,10 +30,26 @@ export const useExchangeStore = defineStore('exchanges', {
       }
     },
     async create(draft: ExchangeDraft) {
-      const exchange = await exchangeApi.create({ ...draft, status: ExchangeStatus.PENDING });
-      this.exchanges = await exchangeApi.list();
-      message('交换请求已发出', 'success');
-      return exchange;
+      try {
+        const exchange = await exchangeApi.create({ ...draft, status: ExchangeStatus.PENDING });
+        this.exchanges = await exchangeApi.list();
+        message('交换请求已发出', 'success');
+        return exchange;
+      } catch (error) {
+        message(error instanceof Error ? error.message : '交换请求发送失败', 'error');
+        return null;
+      }
+    },
+    async resend(id: string) {
+      try {
+        const exchange = await exchangeApi.resend(id);
+        this.exchanges = await exchangeApi.list();
+        message(PAGE_MESSAGES.exchangeResent, 'success');
+        return exchange;
+      } catch (error) {
+        message(error instanceof Error ? error.message : '重新发起失败', 'error');
+        return null;
+      }
     },
     async accept(id: string) {
       await exchangeApi.transition(id, ExchangeStatus.ACCEPTED);
