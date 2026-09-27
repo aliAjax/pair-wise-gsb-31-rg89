@@ -2,14 +2,20 @@ import { defineStore } from 'pinia';
 
 import { exchangeApi } from '@/api/exchangeApi';
 import { ExchangeStatus } from '@/constants/exchange';
+import { EXCHANGE_TIP_MESSAGES } from '@/constants/messages';
 import type { Exchange, ExchangeDraft } from '@/models/exchange';
+import { isExchangeTimedOut } from '@/utils/formatters';
 import { message } from '@/utils/message';
+
+let pendingTicker: ReturnType<typeof setInterval> | null = null;
 
 export const useExchangeStore = defineStore('exchanges', {
   state: () => ({
     exchanges: [] as Exchange[],
     statusFilter: 'all' as ExchangeStatus | 'all',
     loading: false,
+    /** 每秒更新的当前时间戳，驱动剩余时间倒计时与超时落盘 */
+    nowTick: Date.now(),
   }),
   getters: {
     sent: (state) => (userId: string) => state.exchanges.filter((item) => item.from_user_id === userId),
@@ -24,15 +30,45 @@ export const useExchangeStore = defineStore('exchanges', {
       this.loading = true;
       try {
         this.exchanges = await exchangeApi.list();
+        this.nowTick = Date.now();
       } finally {
         this.loading = false;
       }
     },
-    async create(draft: ExchangeDraft) {
-      const exchange = await exchangeApi.create({ ...draft, status: ExchangeStatus.PENDING });
+    /** 启动全局秒级时钟：到时即把超时的待确认记录落盘为已过期 */
+    startTicker() {
+      if (pendingTicker) return;
+      pendingTicker = setInterval(() => {
+        this.nowTick = Date.now();
+        if (this.exchanges.some((item) => isExchangeTimedOut(item, this.nowTick))) {
+          void this.sweepExpired();
+        }
+      }, 1000);
+    },
+    async sweepExpired() {
       this.exchanges = await exchangeApi.list();
-      message('交换请求已发出', 'success');
-      return exchange;
+    },
+    async create(draft: ExchangeDraft) {
+      try {
+        const exchange = await exchangeApi.create({ ...draft, status: ExchangeStatus.PENDING });
+        this.exchanges = await exchangeApi.list();
+        message('交换请求已发出，对方需在 48 小时内处理', 'success');
+        return exchange;
+      } catch (error) {
+        message(error instanceof Error ? error.message : EXCHANGE_TIP_MESSAGES.duplicatePending, 'error');
+        return null;
+      }
+    },
+    async resend(id: string) {
+      try {
+        const exchange = await exchangeApi.resend(id);
+        this.exchanges = await exchangeApi.list();
+        message('已基于过期记录重新发起一单，旧留言仍可查看', 'success');
+        return exchange;
+      } catch (error) {
+        message(error instanceof Error ? error.message : EXCHANGE_TIP_MESSAGES.resendNotExpired, 'error');
+        return null;
+      }
     },
     async accept(id: string) {
       await exchangeApi.transition(id, ExchangeStatus.ACCEPTED);

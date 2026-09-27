@@ -295,6 +295,11 @@ main {
   color: #365f84;
 }
 
+.status-expired {
+  background: color-mix(in oklch, #8a5548, transparent 82%);
+  color: #8a4a3c;
+}
+
 .gallery {
   display: grid;
   gap: 10px;
@@ -592,6 +597,78 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.exchange-card__timer,
+.exchange-card__reason {
+  display: grid;
+  gap: 4px;
+  border-radius: 7px;
+  padding: 12px 14px;
+  background: color-mix(in oklch, var(--rs-accent), transparent 86%);
+}
+
+.exchange-card__timer strong {
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: #9b5c1c;
+}
+
+.exchange-card__timer--urgent strong,
+.countdown--urgent {
+  color: #a83d2b;
+}
+
+.exchange-card__reason {
+  background: color-mix(in oklch, #8a5548, transparent 88%);
+}
+
+.exchange-card__timer span,
+.exchange-card__reason span,
+.exchange-card__timer small,
+.exchange-card__reason small {
+  color: color-mix(in oklch, var(--rs-text), transparent 38%);
+  font-size: 0.8rem;
+}
+
+.exchange-card__closed {
+  color: #8a4a3c;
+  font-weight: 700;
+}
+
+.detail-panel__requests {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-request {
+  display: grid;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.detail-request p {
+  margin: 0;
+}
+
+.detail-request strong {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.detail-request--pending {
+  background: color-mix(in oklch, var(--rs-accent), transparent 86%);
+}
+
+.detail-request--expired {
+  background: color-mix(in oklch, #8a5548, transparent 88%);
+}
+
+.detail-request__message {
+  color: color-mix(in oklch, var(--rs-text), transparent 25%);
+  font-size: 0.92rem;
 }
 
 .profile-side {

@@ -17,6 +17,7 @@ ReSwap 是一个纯前端以物换物 Web 应用。用户可以本地模拟登�
 - 物品详情、物主资料、选择自己的物品发起交换。
 - 发布物品，支持本地 base64 图片上传、分类和成色选择。
 - 交换管理，区分我发起的和我收到的请求，支持同意、拒绝、完成。
+- 待确认请求 48 小时处理时限：读取数据时超时记录自动标记为已过期，物主处理入口随之关闭；相同两件物品时限内只保留一条待确认请求；发起人可从过期记录重新发起一单，旧记录与留言继续可查；交换列表和物品详情展示剩余时间倒计时与过期原因。
 - 个人中心，编辑资料、上传头像、查看我发布的物品。
 - 主题切换、全局错误处理和 Vant 提示。
 
@@ -100,18 +101,30 @@ src/
 
 定义位置：`src/constants/exchange.ts`
 
+取值：`PENDING`（待确认）、`ACCEPTED`（已同意）、`REJECTED`（已拒绝）、`COMPLETED`（已完成）、`EXPIRED`（已过期，待确认超过 48 小时）。
+
 出现位置：
 
 - `src/models/exchange.ts`
 - `src/constants/messages.ts`
-- `src/api/exchangeApi.ts`
-- `src/stores/exchangeStore.ts`
+- `src/api/exchangeApi.ts`（读取时超时扫描、创建去重、重新发起、状态流转守卫）
+- `src/stores/exchangeStore.ts`（秒级时钟、超时落盘、resend）
 - `src/router/guards.ts`
-- `src/utils/formatters.ts`
+- `src/utils/formatters.ts`（状态文案、`getExchangeDeadline`、`isExchangeTimedOut`、`formatExchangeCountdown`）
 - `src/hooks/useExchangeStats.ts`
-- `src/components/common/ExchangeCard.vue`
-- `src/pages/ItemDetail.vue`
+- `src/components/common/ExchangeCard.vue`（剩余时间、过期原因、入口关闭、重新发起）
+- `src/pages/ItemDetail.vue`（剩余时间、过期原因、去重与重新发起）
 - `src/pages/Exchanges.vue`
+
+### 待确认请求 48 小时时限机制
+
+- 时限常量 `PENDING_EXCHANGE_TTL`（48 小时）与过期原因 `EXPIRED_REASON_OWNER_TIMEOUT` 均定义在 `src/constants/exchange.ts`。
+- 每条待确认请求在创建时写入 `expires_at = created_at + 48h`（`src/models/exchange.ts`、`src/api/exchangeApi.ts`）。
+- **读取即扫描**：`exchangeApi.list()` 读取数据时把超过截止时间仍为待确认的记录标记为 `EXPIRED`、写入过期原因并落盘；过期记录不允许再同意/拒绝，物主入口关闭。
+- **时限内去重**：相同发起人、相同两件物品在时限内只保留一条待确认请求，重复发起会被拦截；记录过期后即可重新发起一单。
+- **重新发起**：`exchangeApi.resend()` 沿用旧记录的物品与留言生成新请求，旧记录和留言保持可查。
+- **倒计时**：`exchangeStore` 的秒级 `nowTick` 驱动 `ExchangeCard` 与物品详情页实时展示剩余时间；到时瞬间即使尚未落盘也按已过期呈现。
+- 旧数据缺少 `expires_at` 时按 `created_at + 48h` 回推截止时间。
 
 ## 分层与高耦合约束
 

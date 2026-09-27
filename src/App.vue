@@ -46,5 +46,6 @@ const vantTheme = computed(() => toVantTheme(themeStore.theme));
 onMounted(async () => {
   themeStore.hydrate();
   await Promise.all([authStore.hydrate(), itemStore.hydrate(), exchangeStore.hydrate()]);
+  exchangeStore.startTicker();
 });
 </script>
